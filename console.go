@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
 	"regexp"
 	"strings"
 	"os/exec"
+	"net/url"
 
 	"github.com/cloudfoundry/cli/cf/configuration/config_helpers"
 	"github.com/cloudfoundry/cli/cf/configuration/core_config"
@@ -59,8 +61,13 @@ func (plugin ConsolePlugin) Run(cliConnection plugin.CliConnection, args []strin
 
 	// Exit if the app is not found
 
+	command := entity.Command
+	if command == "" {
+		command = entity.DetectedCommand
+	}
+
 	// Update the app to start tmate
-	plugin.UpdateForTmate(cliConnection, guid)
+	plugin.UpdateForTmate(cliConnection, guid, command)
 
 	// Kill the first instance
 	// plugin.KillInstanceZero(cliConnection, guid)
@@ -71,10 +78,26 @@ func (plugin ConsolePlugin) Run(cliConnection plugin.CliConnection, args []strin
 
 	lastDate := plugin.GetLatestLogDate(cliConnection, appName)
 
-	plugin.WaitAndConnect(cliConnection, appName, instances, lastDate)
+	// From this point on if anything goes wrong and the user interrupts the
+	// process, we should catch it and clean up.
 
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(){
+		for _ = range c {
+			// sig is a ^C, handle it
+
+			// Reduce instance count
+			plugin.ChangeInstanceCount(cliConnection, guid, instances - 1)
+
+			// Reset start command
+			plugin.ChangeAppCommand(cliConnection, guid, entity.Command)
+		}
+	}()
+
+	plugin.WaitAndConnect(cliConnection, appName, instances, lastDate)
 	// SSH has finished. Clean up
-	
+
 	// Reduce instance count
 	plugin.ChangeInstanceCount(cliConnection, guid, instances - 1)
 
@@ -153,7 +176,7 @@ func (plugin ConsolePlugin) KillInstanceZero(cliConnection plugin.CliConnection,
 }
 
 func (plugin ConsolePlugin) ChangeAppCommand(cliConnection plugin.CliConnection, appGuid string, startCmd string) {
-	plugin.Log(fmt.Sprintf("Updating app start command to %v.\n", startCmd), false)
+	plugin.Log(fmt.Sprintf("Updating app start command to '%v'.\n", startCmd), false)
 
 	appURL := fmt.Sprintf("/v2/apps/%v", appGuid)
 	newCommand := fmt.Sprintf("{\"command\":\"%v\"}", startCmd)
@@ -162,9 +185,15 @@ func (plugin ConsolePlugin) ChangeAppCommand(cliConnection plugin.CliConnection,
 	cliConnection.CliCommandWithoutTerminalOutput(cmd...)
 }
 
-func (plugin ConsolePlugin) UpdateForTmate(cliConnection plugin.CliConnection, appGuid string) {
+func (plugin ConsolePlugin) UpdateForTmate(cliConnection plugin.CliConnection, appGuid string, command string) {
 	plugin.Log("Updating app to connect to tmate.\n", false)
-	plugin.ChangeAppCommand(cliConnection, appGuid, "curl http://tmate-bootstrap.cfapps.io | sh")
+
+	if command == "" {
+		plugin.ChangeAppCommand(cliConnection, appGuid, "curl http://tmate-bootstrap.cfapps.io | sh")
+	} else {
+		cmd :=  url.QueryEscape(strings.Replace(command, "$PORT", "8080", -1))
+		plugin.ChangeAppCommand(cliConnection, appGuid, fmt.Sprintf("curl http://tmate-bootstrap.cfapps.io?cmd=%v | sh", cmd))
+	}
 }
 
 func (plugin ConsolePlugin) ChangeInstanceCount(cliConnection plugin.CliConnection, appGuid string, instances int) {
