@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check for payload format option (default is uuencode).
-uuencode=1
+uuencode=0
 if [[ "$1" == '--binary' ]]; then
   binary=1
   uuencode=0

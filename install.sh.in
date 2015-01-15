@@ -1,7 +1,7 @@
 #!/bin/bash
 
-uuencode=1
-binary=0
+uuencode=0
+binary=1
 
 function untar_payload()
 {
