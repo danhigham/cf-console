@@ -31,4 +31,6 @@ $HOME/bin/tmate -S /tmp/tmate.sock new-session -d               # Launch tmate i
 $HOME/bin/tmate -S /tmp/tmate.sock wait tmate-ready             # Blocks until the SSH connection is established
 $HOME/bin/tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
 
+echo "tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'" >> /home/vcap/.profile
+
 exit 0
