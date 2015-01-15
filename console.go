@@ -60,10 +60,15 @@ func (plugin ConsolePlugin) Run(cliConnection plugin.CliConnection, args []strin
 
 	// Exit if the app is not found
 
+	fmt.Printf("%+v\n", entity)
+
 	command := entity.Command
+
 	if command == "" {
 		command = entity.DetectedCommand
 	}
+
+	fmt.Printf("%+v\n", command)
 
 	// Update the app to start tmate
 	plugin.UpdateForTmate(cliConnection, guid, command)
@@ -177,21 +182,30 @@ func (plugin ConsolePlugin) KillInstanceZero(cliConnection plugin.CliConnection,
 func (plugin ConsolePlugin) ChangeAppCommand(cliConnection plugin.CliConnection, appGuid string, startCmd string) {
 	plugin.Log(fmt.Sprintf("Updating app start command to '%v'.\n", startCmd), false)
 
+	startCmd = strings.Replace(startCmd, "\"", "\\\"", -1)
+
 	appURL := fmt.Sprintf("/v2/apps/%v", appGuid)
 	newCommand := fmt.Sprintf("{\"command\":\"%v\"}", startCmd)
+
+	fmt.Println(newCommand)
+
 	cmd := []string{"curl", appURL, "-X", "PUT", "-d", newCommand}
 
 	cliConnection.CliCommandWithoutTerminalOutput(cmd...)
+
 }
 
 func (plugin ConsolePlugin) UpdateForTmate(cliConnection plugin.CliConnection, appGuid string, command string) {
 	plugin.Log("Updating app to connect to tmate.\n", false)
 
-	if command == "" {
-		plugin.ChangeAppCommand(cliConnection, appGuid, "bash <(curl -s https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh)")
-	} else {
-		plugin.ChangeAppCommand(cliConnection, appGuid, fmt.Sprintf("bash <(curl -s https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh)"))
+	tmateCmd := "curl -s https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh > /tmp/install.sh && bash /tmp/install.sh"
+	compCmd := tmateCmd
+
+	if command != "" {
+		compCmd = fmt.Sprintf("%v && %v", tmateCmd, command)
 	}
+
+	plugin.ChangeAppCommand(cliConnection, appGuid, compCmd)
 }
 
 func (plugin ConsolePlugin) ChangeInstanceCount(cliConnection plugin.CliConnection, appGuid string, instances int) {
