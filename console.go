@@ -59,16 +59,11 @@ func (plugin ConsolePlugin) Run(cliConnection plugin.CliConnection, args []strin
 	guid, entity := plugin.FindAppGuid(cliConnection, appName)
 
 	// Exit if the app is not found
-
-	fmt.Printf("%+v\n", entity)
-
 	command := entity.Command
 
 	if command == "" {
 		command = entity.DetectedCommand
 	}
-
-	fmt.Printf("%+v\n", command)
 
 	// Update the app to start tmate
 	plugin.UpdateForTmate(cliConnection, guid, command)
@@ -142,6 +137,8 @@ func (plugin ConsolePlugin) WaitAndConnect(cliConnection plugin.CliConnection, a
 		}
 	}
 
+	plugin.Log(fmt.Sprintf("SSHing to %v\n", ssh_endpoint), false)
+
 	// Launch SSH
 	ps := exec.Command("ssh", ssh_endpoint)
 	ps.Stdout = os.Stdout
@@ -186,8 +183,6 @@ func (plugin ConsolePlugin) ChangeAppCommand(cliConnection plugin.CliConnection,
 
 	appURL := fmt.Sprintf("/v2/apps/%v", appGuid)
 	newCommand := fmt.Sprintf("{\"command\":\"%v\"}", startCmd)
-
-	fmt.Println(newCommand)
 
 	cmd := []string{"curl", appURL, "-X", "PUT", "-d", newCommand}
 
