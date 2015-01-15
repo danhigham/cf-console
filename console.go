@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 	"os/exec"
-	"net/url"
 
 	"github.com/cloudfoundry/cli/cf/configuration/config_helpers"
 	"github.com/cloudfoundry/cli/cf/configuration/core_config"
@@ -189,9 +188,9 @@ func (plugin ConsolePlugin) UpdateForTmate(cliConnection plugin.CliConnection, a
 	plugin.Log("Updating app to connect to tmate.\n", false)
 
 	if command == "" {
-		plugin.ChangeAppCommand(cliConnection, appGuid, "curl https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh | sh")
+		plugin.ChangeAppCommand(cliConnection, appGuid, "bash <(curl -s https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh)")
 	} else {
-		plugin.ChangeAppCommand(cliConnection, appGuid, fmt.Sprintf("curl https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh | sh", cmd))
+		plugin.ChangeAppCommand(cliConnection, appGuid, fmt.Sprintf("bash <(curl -s https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh)"))
 	}
 }
 
