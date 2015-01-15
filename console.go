@@ -189,10 +189,9 @@ func (plugin ConsolePlugin) UpdateForTmate(cliConnection plugin.CliConnection, a
 	plugin.Log("Updating app to connect to tmate.\n", false)
 
 	if command == "" {
-		plugin.ChangeAppCommand(cliConnection, appGuid, "curl http://tmate-bootstrap.cfapps.io | sh")
+		plugin.ChangeAppCommand(cliConnection, appGuid, "curl https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh | sh")
 	} else {
-		cmd :=  url.QueryEscape(strings.Replace(command, "$PORT", "8080", -1))
-		plugin.ChangeAppCommand(cliConnection, appGuid, fmt.Sprintf("curl http://tmate-bootstrap.cfapps.io?cmd=%v | sh", cmd))
+		plugin.ChangeAppCommand(cliConnection, appGuid, fmt.Sprintf("curl https://raw.githubusercontent.com/danhigham/cf-console/master/install.sh | sh", cmd))
 	}
 }
 
