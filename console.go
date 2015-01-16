@@ -138,12 +138,7 @@ func (plugin ConsolePlugin) WaitAndConnect(cliConnection plugin.CliConnection, a
 	ps.Stderr = os.Stderr
 	ps.Stdin = os.Stdin
 
-	ps.Start()
-
-	message := fmt.Sprintf("echo \"%v\"\n", ssh_endpoint)
-	ps.Stdout.Write([]byte(message))
-
-	ps.Wait()
+	ps.Run()
 }
 
 func (plugin ConsolePlugin) GetLatestLogDate(cliConnection plugin.CliConnection, appName string) string {
