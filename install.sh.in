@@ -16,7 +16,26 @@ function untar_payload()
   fi
 }
 
+function parse_yaml {
+  local prefix=$2
+  local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+  sed -ne "s|^\($s\):|\1|" \
+  -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+  -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+  awk -F$fs '{
+    indent = length($1)/2;
+    vname[indent] = $2;
+    for (i in vname) {if (i > indent) {delete vname[i]}}
+    if (length($3) > 0) {
+      vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+      printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+    }
+  }'
+}
+
 untar_payload
+
+eval $(parse_yaml /tmp/staging_info.yml)
 
 # give tmate +x permissions
 chmod +x $HOME/bin/tmate
@@ -29,8 +48,19 @@ echo -e 'y\n'|ssh-keygen -q -t rsa -N "" -f /home/vcap/.ssh/id_rsa
 
 $HOME/bin/tmate -S /tmp/tmate.sock new-session -d               # Launch tmate in a detached state
 $HOME/bin/tmate -S /tmp/tmate.sock wait tmate-ready             # Blocks until the SSH connection is established
-$HOME/bin/tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
 
-echo "tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'" >> $HOME/.profile.d/tmate.sh
+$HOME/bin/tmate -S /tmp/tmate.sock split-window -v
+main_pane=${window}.0
+command_pane=${window}.1
+
+sshcmd=`tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'`
+sshcmd=${sshcmd:4}
+
+$HOME/bin/tmate -S /tmp/tmate.sock selectp -t 0
+
+$HOME/bin/tmate -S /tmp/tmate.sock send-keys -t "$main_pane" "echo \"$sshcmd\"" Enter
+$HOME/bin/tmate -S /tmp/tmate.sock send-keys -t "$command_pane" "$start_command" Enter
+
+printf "%s\n" "$sshcmd"
 
 exit 0

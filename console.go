@@ -58,15 +58,8 @@ func (plugin ConsolePlugin) Run(cliConnection plugin.CliConnection, args []strin
 	appName := args[1]
 	guid, entity := plugin.FindAppGuid(cliConnection, appName)
 
-	// Exit if the app is not found
-	command := entity.Command
-
-	if command == "" {
-		command = entity.DetectedCommand
-	}
-
 	// Update the app to start tmate
-	plugin.UpdateForTmate(cliConnection, guid, command)
+	plugin.UpdateForTmate(cliConnection, guid, "")
 
 	// Kill the first instance
 	// plugin.KillInstanceZero(cliConnection, guid)
@@ -145,7 +138,12 @@ func (plugin ConsolePlugin) WaitAndConnect(cliConnection plugin.CliConnection, a
 	ps.Stderr = os.Stderr
 	ps.Stdin = os.Stdin
 
-	ps.Run()
+	ps.Start()
+
+	message := fmt.Sprintf("echo \"%v\"\n", ssh_endpoint)
+	ps.Stdout.Write([]byte(message))
+
+	ps.Wait()
 }
 
 func (plugin ConsolePlugin) GetLatestLogDate(cliConnection plugin.CliConnection, appName string) string {
