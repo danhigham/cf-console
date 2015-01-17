@@ -50,4 +50,6 @@ $HOME/bin/tmate -S /tmp/tmate.sock send-keys -t "$command_pane" "$start_command"
 
 printf "%s\n" "$sshcmd"
 
+$HOME/bin/tmate -S /tmp/tmate.sock attach
+
 exit 0

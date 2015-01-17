@@ -59,7 +59,7 @@ func (plugin ConsolePlugin) Run(cliConnection plugin.CliConnection, args []strin
 	guid, entity := plugin.FindAppGuid(cliConnection, appName)
 
 	// Update the app to start tmate
-	plugin.UpdateForTmate(cliConnection, guid, "sleep 300")
+	plugin.UpdateForTmate(cliConnection, guid, "")
 
 	// Kill the first instance
 	// plugin.KillInstanceZero(cliConnection, guid)
