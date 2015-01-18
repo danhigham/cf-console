@@ -47,8 +47,6 @@ start_command=$(start_cmd /home/vcap/staging_info.yml)
 
 $HOME/bin/tmate -S /tmp/tmate.sock send-keys -t "$main_pane" 'stty_orig=`stty -g`; stty -echo;' Enter
 
-sleep 1
-
 $HOME/bin/tmate -S /tmp/tmate.sock send-keys -t "$main_pane" 'cat $HOME/banner.txt' Enter
 $HOME/bin/tmate -S /tmp/tmate.sock send-keys -t "$main_pane" "echo \"$sshcmd\"" Enter
 
