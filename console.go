@@ -37,6 +37,12 @@ type AppSearchEntity struct {
 	DetectedBuildpack string `json:"detected_buildpack"`
 }
 
+type AppSummary struct {
+	Guid							string `json:"guid"`
+	Name							string `json:"name"`
+	Diego							bool 	 `json:"diego"`
+}
+
 func fatalIf(err error) {
 	if err != nil {
 		fmt.Fprintln(os.Stdout, "error:", err)
@@ -58,15 +64,25 @@ func (plugin ConsolePlugin) Run(cliConnection plugin.CliConnection, args []strin
 	appName := args[1]
 	guid, entity := plugin.FindAppGuid(cliConnection, appName)
 
-	// Update the app to start tmate
-	plugin.UpdateForTmate(cliConnection, guid, "sleep 3600")
+	// Is it running diego
+	summary := plugin.Summary(cliConnection, guid)
 
-	// Kill the first instance
-	// plugin.KillInstanceZero(cliConnection, guid)
+	instances := entity.Instances
 
-	// Add Instance
-	instances := entity.Instances + 1
-	plugin.ChangeInstanceCount(cliConnection, guid, instances)
+	if summary.Diego == false {
+
+		// Update the app to start tmate
+		plugin.UpdateForTmate(cliConnection, guid, "sleep 3600")
+
+		// Add Instance
+		instances = entity.Instances + 1
+		plugin.ChangeInstanceCount(cliConnection, guid, instances)
+
+	} else {
+
+
+
+	}
 
 	lastDate := plugin.GetLatestLogDate(cliConnection, appName)
 
@@ -102,7 +118,7 @@ func (plugin ConsolePlugin) WaitAndConnect(cliConnection plugin.CliConnection, a
 	plugin.Log("Waiting for SSH endpoint.\n", false)
 
 	// Regex for tmate log line
-	exp := fmt.Sprintf("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{2}-\\d{4}\\s\\[App\\/%v\\]\\s{3}[^\\n]+\\s([^\\s]+\\@[a-z]+\\.tmate\\.io)", instances-1)
+	exp := fmt.Sprintf("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{2}-\\d{4}\\s\\[App\\/%v\\]\\s{6}[^\\n]+\\s([^\\s]+\\@[a-z1-9]+\\.tmate\\.io)", instances-1)
 	reDate := regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{2}-\d{4})\s`)
 
 	re := regexp.MustCompile(exp)
@@ -225,6 +241,21 @@ func (plugin ConsolePlugin) FindAppGuid(cliConnection plugin.CliConnection, appN
 
 	return res.Resources[0].Metadata.Guid, res.Resources[0].Entity
 }
+
+func (plugin ConsolePlugin) Summary(cliConnection plugin.CliConnection, guid string) (AppSummary) {
+
+	appQuery := fmt.Sprintf("/v2/apps/%v/summary", guid)
+	cmd := []string{"curl", appQuery}
+
+	output, _ := cliConnection.CliCommandWithoutTerminalOutput(cmd...)
+	res := AppSummary{}
+	json.Unmarshal([]byte(strings.Join(output, "")), &res)
+
+	plugin.Log(fmt.Sprintf("%v \n", res), true)
+
+	return res
+}
+
 
 func (ConsolePlugin) Log(text string, skipChevron bool) {
 	if skipChevron {
